@@ -19,6 +19,8 @@ parser.add_option("--no-apply-mmc", action="store_false", default=True,
                   dest="APPLYMMC", help="do not apply MMC to the I3MCTree after generating the muons")
 parser.add_option("-e", "--energy", type="float", default=10,
                   dest="ENERGY", help="input energy in TeV")
+parser.add_option("--loge", type="float", default=None, 
+                  dest="LOGE", help="if log is better, it can be used (priority)")
 
 # parse cmd line args, bail out if anything is not understood
 (options,args) = parser.parse_args()
@@ -161,13 +163,17 @@ tray.AddModule("I3MCEventHeaderGenerator","gen_header",
                EventID=1,
                IncrementEventID=True)
 
+if options.LOGE is not None:
+    primary_energy_in_TeV = 10**options.LOGE
+else:
+    primary_energy_in_TeV = options.ENERGY
 
 tray.AddModule(mySimpleStau, "injectStau",
                I3RandomService = randomService,
                Type = dataclasses.I3Particle.ParticleType.STauMinus,
                NEvents = options.NUMEVENTS,
-               EnergyMin = options.ENERGY*I3Units.TeV,
-               EnergyMax = options.ENERGY*I3Units.TeV,
+               EnergyMin = primary_energy_in_TeV*I3Units.TeV,
+               EnergyMax = primary_energy_in_TeV*I3Units.TeV,
                DiskRadius = 200.*I3Units.m,
                SphereRadius = 800.*I3Units.m
                #DiskRadius = 1200 *I3Units.m,

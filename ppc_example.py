@@ -66,7 +66,7 @@ def main():
     tray.Add('I3Reader', Filenamelist=[args.gcd]+args.infiles)
 
     tray.Add('i3ppc','ppc',
-                     gpu = args.usegpus,
+                     #gpu = args.usegpus,
                      MCTree = "I3MCTree",
                      infoName = "PPCInfoDict", # create a dict
                      verbose=True,
