@@ -53,9 +53,9 @@ def makeicflux2d():
     for i in tqdm(range(90)):
         logE, flux = makeicflux1d(i)
         fluxes.append(flux)
-    return logE, fluxes
+    return np.array(logE), np.array(fluxes)
 
-def normicflux2d(logE_min, logE_max, logE_array, fluxes):
+def normicflux2d(logE_min, logE_max, logE_array, fluxes, debug=False):
     valid = (logE_array >= logE_min) * (logE_array < logE_max)
     logEcut = logE_array[valid]
     maxfluxvalue = 0
@@ -67,7 +67,21 @@ def normicflux2d(logE_min, logE_max, logE_array, fluxes):
             maxfluxvalue = thismax
         fluxes_Ecut.append(flux_energycut)
     norm_fluxes_Ecut = [np.array(flux_) / maxfluxvalue for flux_ in fluxes_Ecut]
+    if debug:
+        print(f'The value: {np.max(norm_fluxes_Ecut)} should be 1.')
     return logEcut, norm_fluxes_Ecut
+
+def getWeight2d(logE_min, logE_max, logE_array, fluxes):
+    valid = (logE_array >= logE_min) * (logE_array < logE_max)
+    logEcut = logE_array[valid]
+    maxfluxvalue = 0
+    for flux_ in tqdm(fluxes):
+        flux_energycut = flux_[valid]
+        thismax = np.max(flux_energycut)
+        if thismax > maxfluxvalue:
+            maxfluxvalue = thismax
+    return maxfluxvalue
+
 
 if __name__=='__main__':
     import sys

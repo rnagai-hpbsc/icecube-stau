@@ -33,8 +33,7 @@ def DefinePropagators():
  
 @icetray.traysegment
 def PropagateStaus(tray, name,
-    RandomService = None,
-    ):
+    RandomService = None, debug=False):
 
     from I3Tray import I3Units
 
@@ -53,8 +52,9 @@ def PropagateStaus(tray, name,
     stau.time = 0*I3Units.ns
     stau.location_type = dataclasses.I3Particle.InIce
     propagator.register_particletype(stau.type)
-    print(stau)
-    print(propagator.Propagate(stau))
+    if debug:
+        print(stau)
+        print(propagator.Propagate(stau))
 
     # set up propagators
     propagators = sim_services.I3ParticleTypePropagatorServiceMap()

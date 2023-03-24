@@ -17,10 +17,15 @@ parser.add_option("-n", "--numevents", type="int", default=1,
                   dest="NUMEVENTS", help="The number of events per run")
 parser.add_option("--no-apply-mmc", action="store_false", default=True,
                   dest="APPLYMMC", help="do not apply MMC to the I3MCTree after generating the muons")
-parser.add_option("-e", "--energy", type="float", default=10,
-                  dest="ENERGY", help="input energy in TeV")
-parser.add_option("--loge", type="float", default=None, 
-                  dest="LOGE", help="if log is better, it can be used (priority)")
+parser.add_option("-w", "--weightshow", action="store_true", default=False, 
+                  dest="WEIGHTSHOW", help="weight showing to the out filename")
+parser.add_option("--minloge", type="float", default=5,
+                  dest="MINLOGE", help="Minimum LogE value")
+parser.add_option("--maxloge", type="float", default=8,
+                  dest="MAXLOGE", help="Maximum LogE value")
+parser.add_option("-d", "--debug", action="store_true", default=False,
+                  dest="DEBUG", help="Debug mode")
+
 
 # parse cmd line args, bail out if anything is not understood
 (options,args) = parser.parse_args()
@@ -30,6 +35,8 @@ if len(args) != 0:
                 crap += a
                 crap += " "
         parser.error(crap)
+
+debug = options.DEBUG
 
 from I3Tray import *
 import os
@@ -43,7 +50,23 @@ from PropagateStaus import PropagateStaus
 import math
 import numpy
 
-import validation
+from validation import *
+
+npylogE = 'inputs/mass150/fluxnpy/logE.npy'
+npyflux = 'inputs/mass150/fluxnpy/flux.npy'
+
+if os.path.isfile(npylogE) * os.path.isfile(npyflux):
+    with open(npylogE, 'rb') as f:
+        logEs = np.load(npylogE)
+    with open(npyflux, 'rb') as f:
+        fluxes = np.load(npyflux)
+else:
+    logEs, fluxes = makeicflux2d()
+    with open(npylogE, 'wb') as f:
+        np.save(f, logEs)
+    with open(npyflux, 'wb') as f:
+        np.save(f, fluxes)
+nlogE, nfluxes = normicflux2d(options.MINLOGE,options.MAXLOGE,logEs,fluxes)
 
 class mySimpleStau(icetray.I3Module):
     def __init__(self, context):
@@ -75,14 +98,16 @@ class mySimpleStau(icetray.I3Module):
         self.sphereRadius = self.GetParameter("SphereRadius")
         self.nEvents = self.GetParameter("NEvents")
 
-        nlogE, nflux = norm_icflux(np.log10(self.energyMin), np.log10(self.energyMax), *validation.makeicflux(0))
-        self.normflux = nflux
-        self.normLogE = nlogE
+        self.normflux = nfluxes
+        self.normlogE = nlogE
+        self.weight = weight
 
     def DAQ(self, frame):
 
-        validFlag = False
-        while not validFlag:
+        index = 0
+        while True:
+            if debug:
+                print('\rTrial: %d ' % index, end='')
             azi = self.rs.uniform(self.azimuthMin,self.azimuthMax)
 
             cos_zen_low = math.cos(self.zenithMin / I3Units.radian)
@@ -98,8 +123,17 @@ class mySimpleStau(icetray.I3Module):
             pos = diskCenter + r
     
             # set the particle's energy
-            energy = self.rs.uniform(self.energyMin,self.energyMax) * I3Units.GeV        
-            validFlag = validation.valid_event(np.log10(energy),zen,self.normLogE,self.normflux)
+            energyGeV = self.rs.uniform(self.energyMin,self.energyMax)
+            energy = energyGeV * I3Units.GeV
+            
+            # validate if the setting passes or not
+            logE = np.log10(energyGeV)
+            if valid_event(logE, zen/np.pi*180, self.normlogE, self.normflux[int(zen)]):
+                if debug:
+                    print(logE, zen)
+                break
+            else:
+                index += 1
 
         daughter = dataclasses.I3Particle()
         daughter.type = self.particleType
@@ -148,10 +182,6 @@ class mySimpleStau(icetray.I3Module):
         # normalize the vector
         return v_cross_vi / math.sqrt(numpy.dot(v_cross_vi,v_cross_vi))
 
-    def isValid():
-        return True
-
-
 
 
 tray = I3Tray()
@@ -173,17 +203,15 @@ tray.AddModule("I3MCEventHeaderGenerator","gen_header",
                EventID=1,
                IncrementEventID=True)
 
-if options.LOGE is not None:
-    primary_energy_in_TeV = 10**options.LOGE
-else:
-    primary_energy_in_TeV = options.ENERGY
+energyMin = 10**(options.MINLOGE)
+energyMax = 10**(options.MAXLOGE)
 
 tray.AddModule(mySimpleStau, "injectStau",
                I3RandomService = randomService,
                Type = dataclasses.I3Particle.ParticleType.STauMinus,
                NEvents = options.NUMEVENTS,
-               EnergyMin = energyMin_in_TeV*I3Units.TeV,
-               EnergyMax = energyMax_in_TeV*I3Units.TeV,
+               EnergyMin = energyMin*I3Units.GeV,
+               EnergyMax = energyMax*I3Units.GeV,
                DiskRadius = 200.*I3Units.m,
                SphereRadius = 800.*I3Units.m
                #DiskRadius = 1200 *I3Units.m,
@@ -196,9 +224,13 @@ if options.APPLYMMC:
             RandomService = randomService)
                
 
-tray.AddModule("I3Writer","writer",
-    Filename = options.OUTFILE)
+outfilename = options.OUTFILE
+if options.WEIGHTSHOW:
+    weight = getWeight2d(options.MINLOGE,options.MAXLOGE,logEs,fluxes)
+    outfilename = f'{(options.OUTFILE).split(".i")[0]}_r{options.MINLOGE:.2f}-{options.MAXLOGE:.2f}_w{weight}.i3'
 
+tray.AddModule("I3Writer","writer",
+    Filename = outfilename)
 
 
 tray.Execute(options.NUMEVENTS+3)
