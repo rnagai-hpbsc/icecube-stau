@@ -87,6 +87,7 @@ else:
     with open(npyflux, 'wb') as f:
         np.save(f, fluxes)
 nlogE, nfluxes = normicflux2d(args.minloge,args.maxloge,logEs,fluxes,debug=args.debug)
+weight = getWeight2d(args.minloge,args.maxloge,logEs,fluxes)
 
 class mySimpleStau(icetray.I3Module):
     def __init__(self, context):
@@ -237,16 +238,18 @@ def stau_generation(args):
                    #DiskRadius = 1200 *I3Units.m,
                    #SphereRadius = 1700 *I3Units.m
                    )
-    
-    
+
     tray.AddSegment(PropagateStaus, "PropagateStaus",
                     RandomService = randomService, 
                     debug = args.debug)
                    
+    def event_weight(frame):
+        frame['EventWeight'] = dataclasses.I3Double(weight)
+
+    tray.AddModule(event_weight, 'eventweight', Streams = [icetray.I3Frame.DAQ])
     
     outfilename = args.out
     if args.weightshow:
-        weight = getWeight2d(args.minloge,args.maxloge,logEs,fluxes)
         outfilename = f'{(args.out).split(".i")[0]}_r{args.minloge:.2f}-{args.maxloge:.2f}_w{weight}_run{str(args.run).zfill(8)}.i3'
     
     tray.AddModule("I3Writer","writer",Filename = outfilename)
