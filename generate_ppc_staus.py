@@ -139,7 +139,7 @@ class mySimpleStau(icetray.I3Module):
             
             # validate if the setting passes or not
             logE = np.log10(energyGeV)
-            if valid_event(logE, zen/np.pi*180, self.normlogE, self.normflux[int(zen)]):
+            if valid_event(logE, zen/np.pi*180, self.normlogE, self.normflux[int(zen/np.pi*180)]):
                 if args.debug:
                     print(np.log10(self.energyMin), np.log10(self.energyMax), logE, zen)
                 break
