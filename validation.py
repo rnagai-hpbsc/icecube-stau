@@ -14,6 +14,20 @@ def valid_event(logE, zenith, logE_array, normflux):
     else:
         return False
 
+def valid_event_energy_slope(logE, logEnergyMin, factor=1):
+    validator = random.random()
+    if validator <= 10**(factor*(logEnergyMin-logE)):
+        return True
+    else:
+        return False
+
+def getTheWeight(logE, zenith, logE_array, fluxes):
+    index = (logE_array > logE - 0.1) * (logE_array <= logE)
+    energy_bin = logE_array[index]
+    flux = fluxes[int(zenith)]
+    value = flux[logE_array==energy_bin]
+    return value
+
 def makeicflux1d(zenith):
     inputMatrixFilename = f'inputs/mass150/propMtx/stau150GeV_inf_{int(zenith)}deg'
     propMtx = getPropMtx(inputMatrixFilename,show=False)
@@ -81,7 +95,6 @@ def getWeight2d(logE_min, logE_max, logE_array, fluxes):
         if thismax > maxfluxvalue:
             maxfluxvalue = thismax
     return maxfluxvalue
-
 
 if __name__=='__main__':
     import sys
