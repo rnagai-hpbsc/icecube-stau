@@ -61,8 +61,11 @@ def getPropMtx(javadat,show=True):
                 propMtx['stau2stau'][iLogE][jLogE] = jPropMtx.read_double()
     return propMtx 
 
-def getLaTeXStr(number):
+def getLaTeXStr(number,short=False):
     n = f'{number:.3e}'.split('e')
+    if short:
+        n = f'{number:.1e}'.split('e')
+
     if len(n)>1:
         num = f'${n[0]}\\times' +  '10^{' + f'{int(n[1])}' + '}$'
     else:

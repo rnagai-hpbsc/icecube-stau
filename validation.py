@@ -28,11 +28,20 @@ def getTheWeight(logE, zenith, logE_array, fluxes):
     value = flux[logE_array==energy_bin]
     return value
 
-def makeicflux1d(zenith):
-    inputMatrixFilename = f'inputs/mass150/propMtx/stau150GeV_inf_{int(zenith)}deg'
+def makeicflux1d(zenith,
+                 inkey='stau',
+                 outkey='stau',
+                 prodflux_path='inputs/mass150/prodflux/totalhist.npy',
+                 propMtx_path=None
+                 ):
+
+    if propMtx_path is None:
+        inputMatrixFilename = f'inputs/mass150/propMtx/stau150GeV_inf_{int(zenith)}deg'
+    else:
+        inputMatrixFilename = propMtx_path
     propMtx = getPropMtx(inputMatrixFilename,show=False)
-    key = 'stau'
-    earthfluxdata = np.load('inputs/mass150/prodflux/totalhist.npy')
+    #earthfluxdata = np.load('inputs/mass150/prodflux/totalhist.npy')
+    earthfluxdata = np.load(prodflux_path)
 
     E = [10**(5+0.01*i) for i in range(700)]
     E10 = [10**(5+0.1*i) for i in range(70)]
@@ -42,10 +51,10 @@ def makeicflux1d(zenith):
     for iloge in range(70):
         energy = iloge*10
         flux = earthfluxdata[50+iloge]
-        totalflux += propMtx[f'stau2{key}'][energy]*flux
+        totalflux += propMtx[f'{inkey}2{outkey}'][energy]*flux
         for i in range(10):
-            for j, element in enumerate(propMtx[f'stau2{key}'][iloge*10+i]*flux):
-                totalflux10[int(j/10)] += element
+            for j, element in enumerate(propMtx[f'{inkey}2{outkey}'][iloge*10+i]*flux):
+                totalflux10[int(j/10)] += element/10
     totalnumber = 0
     for i in range(69):
         totalnumber += (E10[i+1]-E10[i])*(totalflux10[i+1]+totalflux10[i])/2 

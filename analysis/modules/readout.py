@@ -7,7 +7,17 @@ import glob
 
 from tqdm import tqdm
 
-def formMMCTrackData(files,alpha=1.5):
+dict_keys = ['Einit',
+             'Eloss',
+             'logEi',
+             'logEloss',
+             'zenith',
+             'azimuth',
+             'coszen',
+             'weight',
+             'evt_weight']
+
+def formMMCTrackData(files,num=None,alpha=1.5,debug=False,startnum=0):
     filelist = glob.glob(files)
     if len(filelist)<1:
         print('Invalid filename!')
@@ -15,20 +25,27 @@ def formMMCTrackData(files,alpha=1.5):
 
     ofilename = filelist[0].split('/')[-1].split('_')[0]
 
-    mmc_dict = {'Einit': {},
-                'Eloss': {},
-                'logEi': {},
-                'logEloss':{},
-                'zenith':{},
-                'azimuth':{},
-                'coszen':{},
-                'weight':{},
-                'evt_weight':{}
-               }
+    #mmc_dict = {'Einit': {},
+    #            'Eloss': {},
+    #            'logEi': {},
+    #            'logEloss':{},
+    #            'zenith':{},
+    #            'azimuth':{},
+    #            'coszen':{},
+    #            'weight':{},
+    #            'evt_weight':{}
+    #           }
+
+    mmc_dict = {}
+    for key in dict_keys:
+        mmc_dict.setdefault(key,[])
 
     i = 0
     for fname in tqdm(filelist):
         i += 1
+        if num is not None:
+            if i > num:
+                break
 
         try: 
             category = fname.split('/')[-1].split('_')[0].split('-')[1]
@@ -45,6 +62,7 @@ def formMMCTrackData(files,alpha=1.5):
                 try:
                     frame = i3f.pop_daq()
                 except RuntimeError:
+                    print('Something wrong with a frame')
                     continue
                 mmc = frame.Get('MMCTrackList')
                 mmc0 = mmc[0]
@@ -64,11 +82,26 @@ def formMMCTrackData(files,alpha=1.5):
                     event_weight = 1
                 energy_info['evt_weight'].append(event_weight)
                 energy_info['weight'].append(1)
+            if debug:
+                print(f'DEBUG*** {fname} #events : {len(energy_info["Einit"])}')
 
         for key in mmc_dict:
             mmc_dict[key][category].extend(energy_info[key])
 
     return mmc_dict
+
+def form_Correspond_data(muons_file,staus_file):
+    muons_dict = {}
+    staus_dict = {}
+    for key in dict_keys:
+        muons_dict.setdefault(key,[])
+        staus_dict.setdefault(key,[])
+
+    i_mu = 0
+    i_stau = 0
+
+
+
 
 if __name__ == '__main__':
     ex_dict = formMMCTrackData('../data/RunTest5/Stau_ppc/*0001_ppc.i3')
