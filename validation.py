@@ -31,10 +31,12 @@ def getTheWeight(logE, zenith, logE_array, fluxes):
 def makeicflux1d(zenith,
                  inkey='stau',
                  outkey='stau',
-                 prodflux_path='inputs/mass150/prodflux/totalhist.npy',
+                 prodflux_path=None,
                  propMtx_path=None
                  ):
 
+    if prodflux_path is None:
+        prodflux_path='inputs/mass150/prodflux/totalhist.npy'
     if propMtx_path is None:
         inputMatrixFilename = f'inputs/mass150/propMtx/stau150GeV_inf_{int(zenith)}deg'
     else:

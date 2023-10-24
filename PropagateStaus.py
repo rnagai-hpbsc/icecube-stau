@@ -24,7 +24,16 @@ def DefinePropagators():
     cascadePropagator = cmc.I3CascadeMCService(phys_services.I3GSLRandomService(1)) # dummy RNG
     
     propagators = sim_services.I3ParticleTypePropagatorServiceMap()
-    for pt in 'MuMinus', 'MuPlus', 'TauMinus', 'TauPlus', 'STauMinus', 'STauPlus':
+    for pt in 'MuMinus', 'MuPlus', 'TauMinus', 'TauPlus', 'STauMinus', 'STauPlus',\
+              'STauMinus100', 'STauPlus100',\
+              'STauMinus200', 'STauPlus200',\
+              'STauMinus300', 'STauPlus300',\
+              'STauMinus400', 'STauPlus400',\
+              'STauMinus500', 'STauPlus500',\
+              'STauMinus600', 'STauPlus600',\
+              'STauMinus700', 'STauPlus700',\
+              'STauMinus800', 'STauPlus800',\
+              'STauMinus900', 'STauPlus900',:
         propagators[getattr(dataclasses.I3Particle.ParticleType, pt)] = propagator
     for pt in 'DeltaE', 'Brems', 'PairProd', 'NuclInt', 'Hadrons', 'EMinus', 'EPlus':
         propagators[getattr(dataclasses.I3Particle.ParticleType, pt)] = cascadePropagator
@@ -32,7 +41,7 @@ def DefinePropagators():
     return propagators
  
 @icetray.traysegment
-def PropagateStaus(tray, name,
+def PropagateStaus(tray, name, particle_type=None,
     RandomService = None, debug=False):
 
     from I3Tray import I3Units
@@ -40,12 +49,14 @@ def PropagateStaus(tray, name,
     from icecube import icetray, dataclasses, phys_services, sim_services, simclasses
     from icecube import cmc
 
+    if particle_type is None:
+        particle_type = dataclasses.I3Particle.STauMinus
     propagator      = MakePropagator(mediadef='copy_config_icesim.json')
     cascadePropagator = cmc.I3CascadeMCService(phys_services.I3GSLRandomService(1)) # dummy RNG
 
     print(propagator)
     stau = dataclasses.I3Particle()
-    stau.type = dataclasses.I3Particle.STauMinus
+    stau.type = particle_type
     stau.pos = dataclasses.I3Position(0,0,0)
     stau.dir = dataclasses.I3Direction(0,0)
     stau.energy = 100 * I3Units.TeV
@@ -58,7 +69,16 @@ def PropagateStaus(tray, name,
 
     # set up propagators
     propagators = sim_services.I3ParticleTypePropagatorServiceMap()
-    for pt in 'MuMinus', 'MuPlus', 'TauMinus', 'TauPlus', 'STauMinus', 'STauPlus':
+    for pt in 'MuMinus', 'MuPlus', 'TauMinus', 'TauPlus', 'STauMinus', 'STauPlus',\
+              'STauMinus100', 'STauPlus100',\
+              'STauMinus200', 'STauPlus200',\
+              'STauMinus300', 'STauPlus300',\
+              'STauMinus400', 'STauPlus400',\
+              'STauMinus500', 'STauPlus500',\
+              'STauMinus600', 'STauPlus600',\
+              'STauMinus700', 'STauPlus700',\
+              'STauMinus800', 'STauPlus800',\
+              'STauMinus900', 'STauPlus900',:
         propagators[getattr(dataclasses.I3Particle.ParticleType, pt)] = propagator
     for pt in 'DeltaE', 'Brems', 'PairProd', 'NuclInt', 'Hadrons', 'EMinus', 'EPlus':
         propagators[getattr(dataclasses.I3Particle.ParticleType, pt)] = cascadePropagator
@@ -114,11 +134,12 @@ if __name__=="__main__":
         nstreams = 10000,
         streamnum = options.RUNNUMBER)
 
+
     # re-use the same RNG for modules that need it on the context
     tray.context['I3RandomService'] = randomService
 
     tray.AddSegment(PropagateStaus, "PropagateStaus",
-        RandomService = randomService)
+        RandomService = randomService, debug=True)
 
     tray.AddModule("I3Writer","writer",
         Filename = options.OUTFILE)
